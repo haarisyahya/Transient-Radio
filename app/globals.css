@@ -1,26 +1,182 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'AzretMono';
+  src: url('/fonts/AzretMono-Medium.ttf') format('truetype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'AzretMono';
+  src: url('/fonts/AzretMono-Light.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --tr-bg: #0d0d0d;
+  --tr-surface: #111111;
+  --tr-text: #c8c8c8;
+  --tr-text-dim: #505050;
+  --tr-text-muted: #7a7a7a;
+  --tr-text-active: #e8e8e8;
+  --tr-border: #1e1e1e;
+  --tr-progress: #747474;
+  --tr-progress-track: #222222;
+  --tr-accent: #c8905b;      /* Orange— used for active/playing state */
+  --tr-accent-dim: #c8905b; /* Ghost tint for large index numbers */
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+* {
+  box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background-color: var(--tr-bg);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--tr-bg);
+  color: var(--tr-text);
+  font-family: 'AzretMono', 'Courier New', Courier, monospace;
+  font-weight: 500;
+  font-size: 13px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Progress bar seek handle */
+.seek-bar {
+  position: relative;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.seek-bar__track {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background-color: var(--tr-progress-track);
+}
+
+.seek-bar__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background-color: var(--tr-accent);
+  pointer-events: none;
+  transition: width 0.1s linear;
+}
+
+/* Remove default audio element */
+audio {
+  display: none;
+}
+
+/* Accessibility */
+
+/* Visually hidden but available to screen readers  */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+/* Skip to main content, hidden off-screen until focused by keyboard */
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 32px;
+  z-index: 200;
+  background: var(--tr-text);
+  color: var(--tr-bg);
+  padding: 10px 20px;
+  font-size: 11px;
+  font-family: inherit;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+  top: 24px;
+  outline: none;
+}
+
+/* Keyboard focus ring, only shown for keyboard navigation, not mouse clicks */
+:focus-visible {
+  outline: 1px solid var(--tr-text-muted);
+  outline-offset: 3px;
+}
+
+/* Suppress focus ring for mouse/touch interactions */
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Volume slider */
+.volume-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  accent-color: var(--tr-accent);
+  width: 72px;
+  height: 2px;
+  background: transparent;
+  cursor: pointer;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.volume-slider::-webkit-slider-runnable-track {
+  height: 1px;
+  background: var(--tr-progress-track);
+}
+
+.volume-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tr-accent);
+  margin-top: -3.5px;
+  transition: background 0.15s ease;
+}
+
+.volume-slider:hover::-webkit-slider-thumb {
+  background: var(--tr-text);
+}
+
+.volume-slider::-moz-range-track {
+  height: 1px;
+  background: var(--tr-progress-track);
+  border: none;
+}
+
+.volume-slider::-moz-range-thumb {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tr-accent);
+  border: none;
+  transition: background 0.15s ease;
+}
+
+.volume-slider:hover::-moz-range-thumb {
+  background: var(--tr-text);
 }

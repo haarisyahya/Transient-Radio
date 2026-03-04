@@ -1,0 +1,200 @@
+TRANSIENT RADIO - CHANGES LOG
+==============================
+Session: 2026-03-03
+
+────────────────────────────────────────────────────────────────────────────────
+LOGO
+────────────────────────────────────────────────────────────────────────────────
+- Switched logo image from TR-Icon-Transparent.png to TR-Icon-DarkGrey.png
+  (black/white version as requested)
+- Reduced logo height from 146px to 28px
+- Moved logo from top-right to top-left on all pages
+- Fixed positioning bug: replaced flex header with explicit fixed div
+  (position: fixed; top: 24px; left: 32px) across home, about, and submit pages
+- Top-left slot marked with comment for Max's animation replacement
+  Recommended animation format: Lottie (.json / .lottie) or WebM video
+
+────────────────────────────────────────────────────────────────────────────────
+BIO / DESCRIPTION
+────────────────────────────────────────────────────────────────────────────────
+- Updated bio text to:
+  "Transient Radio is a nomadic, internet-based archive exploring music beyond
+   genre and geography. Broadcasting from Toronto to the world."
+- Increased bottom margin between bio and Submit Your Mix button (8px -> 24px)
+
+────────────────────────────────────────────────────────────────────────────────
+SUBMIT YOUR MIX BUTTON (home page)
+────────────────────────────────────────────────────────────────────────────────
+- Changed from plain dim text link to a bordered button
+- Style: inline-flex, uppercase, 11px, 1px solid border, 8px 14px padding
+- Arrow (->) suffix added
+- Hover: text and border brighten
+- Links to /submit (internal route, client-side navigation via Next.js Link)
+
+────────────────────────────────────────────────────────────────────────────────
+SUBMIT PAGE (/submit)
+────────────────────────────────────────────────────────────────────────────────
+- New page created at app/submit/page.tsx
+- Integrated form using Formspree (ID: mzdanppl)
+  -> Submissions emailed to Formspree account + stored in dashboard at formspree.io
+  -> File uploads (mix + photo) require Formspree Gold plan upgrade, so we should probably use Supabase as a free database to store mixes.
+- Fields match original Google Form exactly:
+    1. Full Name *
+    2. Artist Name *
+    3. Email Address *
+    4. Social Media: Instagram and/or Resident Advisor *
+    5. Describe your proposed concept of the mix *
+    6. Upload Your Mix (audio/video, max 100MB) *
+    7. Upload a photo to accompany your set (PDF/image, max 100MB) *
+    8. Provide a short bio of yourself *
+    9. Anything else you'd like to add? (optional)
+- Custom file picker: shows filename + Remove button after selection
+  (replaces raw browser file input)
+- Send button styled to match Submit Your Mix button (bordered, uppercase, arrow)
+- Success state: "Received. We'll be in touch." with option to submit another
+- Error state: inline error message with role="alert"
+- Intro text included above form fields
+
+────────────────────────────────────────────────────────────────────────────────
+MIX LIST COLUMNS
+────────────────────────────────────────────────────────────────────────────────
+- Redesigned MixRow columns: No. | Title | + (expand)
+- Index column doubles as play indicator: shows ▶ when active, ■ on hover while playing
+- Entire row is now clickable to play/pause (not just the title)
+- Time display (e.g. 1:23 / 45:00) shown when mix is active
+- "+" button expands an inline description/bio for the mix
+  -> Only shows if mix has a description field populated in lib/mixes.ts
+  -> To add a description: set the description field in lib/mixes.ts
+- No download functionality, yet
+- Hover: subtle background change on all rows
+
+────────────────────────────────────────────────────────────────────────────────
+SEARCH
+────────────────────────────────────────────────────────────────────────────────
+- Search input added above the mixes list
+- Filters by artist name or mix title in real time
+- Shows "No mixes found." if no results match
+
+────────────────────────────────────────────────────────────────────────────────
+MIXES DATA (lib/mixes.ts)
+────────────────────────────────────────────────────────────────────────────────
+- Added optional description field to Mix interface
+- To add a new mix: fill in id, index, title, artist, date, description, src
+  Place audio files in /public/mixes/
+
+────────────────────────────────────────────────────────────────────────────────
+FONTS
+────────────────────────────────────────────────────────────────────────────────
+- AzretMono confirmed loaded from /public/fonts/ and applied globally
+- Two weights loaded: Medium (500) for body, Light (300) available
+- Font files: AzretMono-Medium.ttf, AzretMono-Light.ttf, AzretMono-Thin.ttf,
+  AzretMono-ExtraLight.ttf, AzretMono-Italic.ttf
+
+────────────────────────────────────────────────────────────────────────────────
+ACCESSIBILITY
+────────────────────────────────────────────────────────────────────────────────
+Already present before today's session:
+  - aria-label on logo, play/pause buttons, seek bar, expand button
+  - Keyboard support (Enter/Space) on mix rows and + button
+  - Proper label[for] on all form fields
+  - lang="en" on <html>
+
+Added this session:
+  globals.css:
+    - .sr-only utility (visually hidden, screen reader accessible)
+    - .skip-link (hidden until focused, appears top-left on keyboard focus)
+    - :focus-visible ring (1px outline for keyboard nav only)
+    - :focus:not(:focus-visible) suppresses ring for mouse/touch
+
+  layout.tsx:
+    - Skip-to-content link on every page (<a href="#main-content">)
+
+  page.tsx (home):
+    - id="main-content" on <main>
+    - Hidden <h1>Transient Radio</h1>
+    - <label htmlFor="mix-search"> linked to search input
+    - aria-live="polite" region announces search result count to screen readers
+
+  about/page.tsx:
+    - id="main-content" on <main>
+    - Hidden <h1>About Transient Radio</h1>
+
+  submit/page.tsx:
+    - id="main-content" on <main>
+    - "Submit Your Mix" promoted from <p> to <h1> (visually identical)
+    - aria-live="polite" aria-atomic="true" region for success/error states
+    - Error message: role="alert", id="submit-error"
+    - Submit button: aria-describedby="submit-error" when error is shown
+
+  MixRow.tsx (seek bar):
+    - role="slider" with full ARIA value attributes:
+        aria-valuemin, aria-valuemax, aria-valuenow, aria-valuetext
+    - Keyboard seekable: ← → scrub 2%, Home = start, End = end
+
+────────────────────────────────────────────────────────────────────────────────
+VISUAL DIFFERENTIATION (vs. Libra Mix)
+────────────────────────────────────────────────────────────────────────────────
+Accent colour:
+  - Added --tr-accent: #c8905b to globals.css
+  - Added --tr-accent-dim: #c8905b for ghost index tint
+  - Seek bar fill updated from --tr-progress (grey) to --tr-accent (blue)
+  - Seek bar fill now has transition: width 0.1s linear for smooth progress
+  - Active row: mix title and play glyph render in accent colour
+
+MixRow redesign:
+  - Layout changed from single-line "Artist - Title" to stacked two-line layout:
+      Line 1 (primary):   Mix Title - 13px, full brightness -> accent when active
+      Line 2 (secondary): Artist Name - 11px, dim -> muted when active
+  - Ghost index numbers: increased from 11px tabular to 24px, colour #242424
+    -> Become ▶ / ■ in accent-dim when the mix is active
+  - Row padding increased from 14px to 20px (more editorial, less spreadsheet)
+  - Hover background: subtle #0f0f0f tint on all rows
+  - Date hidden when row is active (time shown in now-playing bar instead)
+  - Seek bar removed from MixRow (moved to NowPlayingBar)
+  - Simplified MixRow props: removed currentTime, duration, onSeek
+  - "+" expand button colour changes to accent when expanded
+
+NowPlayingBar (new component — components/NowPlayingBar.tsx):
+  - Fixed bottom bar that slides up (translateY) when a mix is active
+  - Slides back down when no mix is selected
+  - Content: play/pause button (accent) | stacked Title/Artist | time display
+  - Full-width seek bar with accent fill, keyboard seekable (<- -> Home End)
+  - Full ARIA slider attributes: aria-valuemin/max/now/valuetext
+  - page.tsx: main paddingBottom expands from 80px → 160px when bar is visible
+    (transition: 0.3s ease, prevents content being hidden behind the bar)
+
+────────────────────────────────────────────────────────────────────────────────
+VOLUME CONTROL
+────────────────────────────────────────────────────────────────────────────────
+- Replaced binary mute toggle with a volume slider in NowPlayingBar
+- Click the speaker icon to open/close a horizontal range slider (72px)
+- Slider syncs to audio.volume (0-1) in real time
+- Speaker icon reflects current level:
+    volume = 0       -> speaker + X (dimmed)
+    0 < volume <= 0.5 -> speaker + one wave
+    volume > 0.5     -> speaker + two waves
+- volume state + handleVolumeChange callback managed in page.tsx
+- isVolumeOpen toggle state is local to NowPlayingBar
+- Slider styled via .volume-slider in globals.css (custom track + thumb)
+- accent-color: var(--tr-accent) added to override browser default purple/blue fill
+
+────────────────────────────────────────────────────────────────────────────────
+ACCENT COLOUR UPDATE & BUTTON BORDERS
+────────────────────────────────────────────────────────────────────────────────
+- --tr-accent-dim updated to match
+- Submit Your Mix button: border default var(--tr-border), accent on hover only
+- Send button: border default var(--tr-border), accent on hover only
+- Seek bar fill: var(--tr-accent) (#c8905b)
+- Volume slider thumb: var(--tr-accent) (#c8905b), brightens to var(--tr-text) on hover
+- Volume icon: stays var(--tr-text-muted) (unchanged)
+
+────────────────────────────────────────────────────────────────────────────────
+PENDING / FUTURE
+────────────────────────────────────────────────────────────────────────────────
+- Animation from Max -> replace <Logo> in top-left on all pages
+  (home, about, submit — all marked with comments)
+- Supabase migration for mixes archive + form submissions
+  (will replace static lib/mixes.ts and Formspree)
+- Formspree Gold plan upgrade for file upload support (mix + photo fields), maybe?
+- Full accessibility audit once site content is final
+  (color contrast check, screen reader walkthrough)
