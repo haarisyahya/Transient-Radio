@@ -207,7 +207,7 @@ SUPABASE SETUP
 ────────────────────────────────────────────────────────────────────────────────
 R2 + SUPABASE INTEGRATION
 ────────────────────────────────────────────────────────────────────────────────
-API routes (all use Edge runtime for Cloudflare Pages compatibility):
+API routes (all use Edge runtime + force-dynamic for Cloudflare Pages compatibility):
 
   app/api/upload-url/route.ts
     - Accepts: fileName, contentType, folder (POST)
