@@ -1,6 +1,5 @@
 export const runtime = "edge";
 
-import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -30,20 +29,33 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const { error } = await getSupabaseAdmin().from("submissions").insert({
-    full_name,
-    artist_name,
-    email,
-    social_media,
-    concept,
-    mix_url,
-    photo_url,
-    bio,
-    anything_else: anything_else || null,
-  });
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/submissions`,
+    {
+      method: "POST",
+      headers: {
+        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
+        "Content-Type": "application/json",
+        Prefer: "return=minimal",
+      },
+      body: JSON.stringify({
+        full_name,
+        artist_name,
+        email,
+        social_media,
+        concept,
+        mix_url,
+        photo_url,
+        bio,
+        anything_else: anything_else || null,
+      }),
+    }
+  );
 
-  if (error) {
-    console.error("Supabase error:", error);
+  if (!res.ok) {
+    const text = await res.text();
+    console.error("Supabase error:", text);
     return NextResponse.json({ error: "Failed to save submission" }, { status: 500 });
   }
 

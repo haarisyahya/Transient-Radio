@@ -266,6 +266,17 @@ SCHEMA ALIGNMENT
   getSupabaseAdmin) to prevent build-time instantiation errors on Cloudflare
 
 ────────────────────────────────────────────────────────────────────────────────
+EDGE RUNTIME FIX — SUPABASE REST API
+────────────────────────────────────────────────────────────────────────────────
+- @supabase/supabase-js uses async_hooks internally which is unavailable in
+  Cloudflare Edge runtime, causing 500 errors on all API routes
+- Replaced Supabase JS client with direct REST fetch calls in both routes:
+    /api/mixes  — GET  /rest/v1/mixes with anon key
+    /api/submit — POST /rest/v1/submissions with service role key
+- lib/supabase.ts and lib/supabase-admin.ts kept for potential future use
+  but no longer imported by API routes
+
+────────────────────────────────────────────────────────────────────────────────
 PENDING / FUTURE
 ────────────────────────────────────────────────────────────────────────────────
 - Animation from Max -> replace <Logo> in top-left on all pages
