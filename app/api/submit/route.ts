@@ -1,6 +1,6 @@
 export const runtime = "edge";
 
-import { supabaseAdmin } from "@/lib/supabase-admin";
+import { getSupabaseAdmin } from "@/lib/supabase-admin";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const { error } = await supabaseAdmin.from("submissions").insert({
+  const { error } = await getSupabaseAdmin().from("submissions").insert({
     full_name,
     artist_name,
     email,
