@@ -275,6 +275,7 @@ EDGE RUNTIME FIX — SUPABASE REST API
     /api/submit — POST /rest/v1/submissions with service role key
 - lib/supabase.ts and lib/supabase-admin.ts kept for potential future use
   but no longer imported by API routes
+- wrangler.toml: nodejs_compat → nodejs_compat_v2 to provide async_hooks support
 
 ────────────────────────────────────────────────────────────────────────────────
 PENDING / FUTURE
