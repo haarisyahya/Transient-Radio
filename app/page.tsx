@@ -5,16 +5,26 @@ import Link from "next/link";
 import Logo from "@/components/Logo";
 import MixRow from "@/components/MixRow";
 import NowPlayingBar from "@/components/NowPlayingBar";
-import { mixes } from "@/lib/mixes";
+import type { Mix } from "@/lib/mixes";
 
 export default function Home() {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const [mixes, setMixes] = useState<Mix[]>([]);
+  const [mixesLoading, setMixesLoading] = useState(true);
   const [currentMixId, setCurrentMixId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [search, setSearch] = useState("");
   const [volume, setVolume] = useState(1);
+
+  useEffect(() => {
+    fetch("/api/mixes")
+      .then((res) => res.json())
+      .then((data) => setMixes(Array.isArray(data) ? data : []))
+      .catch(() => setMixes([]))
+      .finally(() => setMixesLoading(false));
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -114,7 +124,6 @@ export default function Home() {
         id="main-content"
         style={{
           padding: "120px 32px 80px",
-          maxWidth: "860px",
           paddingBottom: currentMixId ? "160px" : "80px",
           transition: "padding-bottom 0.3s ease",
         }}
@@ -197,7 +206,11 @@ export default function Home() {
 
         {/* Mixes list */}
         <div>
-          {filteredMixes.length > 0 ? (
+          {mixesLoading ? (
+            <p style={{ color: "var(--tr-text-dim)", fontSize: "12px", padding: "24px 0" }}>
+              Loading…
+            </p>
+          ) : filteredMixes.length > 0 ? (
             filteredMixes.map((mix) => (
               <MixRow
                 key={mix.id}

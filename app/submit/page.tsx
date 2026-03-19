@@ -3,12 +3,7 @@
 import { useRef, useState } from "react";
 import Logo from "@/components/Logo";
 
-// Formspree 
-const FORMSPREE_ID = "mzdanppl";
-// Note: file uploads (mix + photo) require Formspree's Gold plan. Might have to use Supabase
-
-
-type Status = "idle" | "submitting" | "success" | "error";
+type Status = "idle" | "uploading" | "submitting" | "success" | "error";
 
 const inputStyle: React.CSSProperties = {
   width: "100%",
@@ -49,32 +44,34 @@ const requiredMark: React.CSSProperties = {
   marginLeft: "2px",
 };
 
-// Custom file picker 
+// Custom file picker
 interface FileFieldProps {
   id: string;
   name: string;
   required?: boolean;
   accept: string;
   hint: string;
+  onFileChange: (file: File | null) => void;
 }
 
-function FileField({ id, name, required, accept, hint }: FileFieldProps) {
+function FileField({ id, name, required, accept, hint, onFileChange }: FileFieldProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [fileName, setFileName] = useState<string | null>(null);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+    const file = e.target.files?.[0] ?? null;
     setFileName(file?.name ?? null);
+    onFileChange(file);
   }
 
   function handleRemove() {
     if (inputRef.current) inputRef.current.value = "";
     setFileName(null);
+    onFileChange(null);
   }
 
   return (
     <div>
-      {/* Hidden real input — FormData picks this up on submit */}
       <input
         ref={inputRef}
         id={id}
@@ -99,7 +96,6 @@ function FileField({ id, name, required, accept, hint }: FileFieldProps) {
       </p>
 
       {fileName ? (
-        // File selected — show name + remove button
         <div
           style={{
             display: "flex",
@@ -137,18 +133,13 @@ function FileField({ id, name, required, accept, hint }: FileFieldProps) {
               flexShrink: 0,
               transition: "color 0.15s ease",
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.color = "var(--tr-text)")
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.color = "var(--tr-text-dim)")
-            }
+            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--tr-text)")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--tr-text-dim)")}
           >
             Remove
           </button>
         </div>
       ) : (
-        // No file yet — show trigger button
         <button
           type="button"
           onClick={() => inputRef.current?.click()}
@@ -165,12 +156,8 @@ function FileField({ id, name, required, accept, hint }: FileFieldProps) {
             textAlign: "left",
             transition: "color 0.15s ease",
           }}
-          onMouseEnter={(e) =>
-            (e.currentTarget.style.color = "var(--tr-text)")
-          }
-          onMouseLeave={(e) =>
-            (e.currentTarget.style.color = "var(--tr-text-dim)")
-          }
+          onMouseEnter={(e) => (e.currentTarget.style.color = "var(--tr-text)")}
+          onMouseLeave={(e) => (e.currentTarget.style.color = "var(--tr-text-dim)")}
         >
           Add File
         </button>
@@ -179,41 +166,100 @@ function FileField({ id, name, required, accept, hint }: FileFieldProps) {
   );
 }
 
+async function uploadToR2(file: File, folder: string): Promise<string> {
+  // Step 1: get presigned URL
+  const res = await fetch("/api/upload-url", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      fileName: file.name,
+      contentType: file.type,
+      folder,
+    }),
+  });
+
+  if (!res.ok) throw new Error("Failed to get upload URL");
+  const { uploadUrl, publicUrl } = await res.json();
+
+  // Step 2: upload directly to R2
+  const uploadRes = await fetch(uploadUrl, {
+    method: "PUT",
+    body: file,
+    headers: { "Content-Type": file.type },
+  });
+
+  if (!uploadRes.ok) throw new Error("Failed to upload file");
+  return publicUrl;
+}
 
 export default function SubmitPage() {
   const [status, setStatus] = useState<Status>("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [mixFile, setMixFile] = useState<File | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+
+  const busy = status === "uploading" || status === "submitting";
 
   async function handleSubmit(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
-    setStatus("submitting");
+
+    if (!mixFile || !photoFile) {
+      setErrorMessage("Please attach both your mix and a photo.");
+      setStatus("error");
+      return;
+    }
+
+    setStatus("uploading");
     setErrorMessage("");
 
     const form = e.currentTarget;
     const data = new FormData(form);
 
     try {
-      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+      // Upload both files to R2
+      const [mixUrl, photoUrl] = await Promise.all([
+        uploadToR2(mixFile, "submissions/mixes"),
+        uploadToR2(photoFile, "submissions/photos"),
+      ]);
+
+      // Save metadata to Supabase
+      setStatus("submitting");
+
+      const res = await fetch("/api/submit", {
         method: "POST",
-        body: data,
-        headers: { Accept: "application/json" },
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          full_name: data.get("full_name"),
+          artist_name: data.get("artist_name"),
+          email: data.get("email"),
+          social_media: data.get("social_media"),
+          concept: data.get("concept"),
+          bio: data.get("bio"),
+          anything_else: data.get("anything_else"),
+          mix_url: mixUrl,
+          photo_url: photoUrl,
+        }),
       });
 
-      if (res.ok) {
-        setStatus("success");
-        form.reset();
-      } else {
+      if (!res.ok) {
         const json = await res.json().catch(() => ({}));
-        setErrorMessage(
-          json?.errors?.[0]?.message ?? "Something went wrong. Please try again."
-        );
-        setStatus("error");
+        throw new Error(json?.error ?? "Something went wrong. Please try again.");
       }
-    } catch {
-      setErrorMessage("Network error. Please try again.");
+
+      setStatus("success");
+      form.reset();
+    } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
       setStatus("error");
     }
   }
+
+  const buttonLabel =
+    status === "uploading"
+      ? "Uploading files…"
+      : status === "submitting"
+      ? "Saving…"
+      : "Send";
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--tr-bg)" }}>
@@ -269,6 +315,8 @@ export default function SubmitPage() {
 
         {/* Screen reader status announcements */}
         <div aria-live="polite" aria-atomic="true" className="sr-only">
+          {status === "uploading" && "Uploading your files, please wait."}
+          {status === "submitting" && "Saving your submission, please wait."}
           {status === "success" && "Your mix has been submitted. We'll be in touch."}
           {status === "error" && errorMessage}
         </div>
@@ -297,31 +345,20 @@ export default function SubmitPage() {
                 padding: 0,
                 transition: "color 0.15s ease",
               }}
-              onMouseEnter={(e) =>
-                (e.currentTarget.style.color = "var(--tr-text)")
-              }
-              onMouseLeave={(e) =>
-                (e.currentTarget.style.color = "var(--tr-text-dim)")
-              }
+              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--tr-text)")}
+              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--tr-text-dim)")}
             >
               Submit another
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} encType="multipart/form-data">
+          <form onSubmit={handleSubmit}>
             {/* 1. Full Name */}
             <div style={fieldStyle}>
               <label style={labelStyle} htmlFor="full_name">
                 Full Name<span style={requiredMark}>*</span>
               </label>
-              <input
-                id="full_name"
-                name="full_name"
-                type="text"
-                required
-                autoComplete="name"
-                style={inputStyle}
-              />
+              <input id="full_name" name="full_name" type="text" required autoComplete="name" style={inputStyle} />
             </div>
 
             {/* 2. Artist Name */}
@@ -329,29 +366,15 @@ export default function SubmitPage() {
               <label style={labelStyle} htmlFor="artist_name">
                 Artist Name<span style={requiredMark}>*</span>
               </label>
-              <input
-                id="artist_name"
-                name="artist_name"
-                type="text"
-                required
-                autoComplete="off"
-                style={inputStyle}
-              />
+              <input id="artist_name" name="artist_name" type="text" required autoComplete="off" style={inputStyle} />
             </div>
 
-            {/* 3. Email Address */}
+            {/* 3. Email */}
             <div style={fieldStyle}>
               <label style={labelStyle} htmlFor="email">
                 Email Address<span style={requiredMark}>*</span>
               </label>
-              <input
-                id="email"
-                name="email"
-                type="email"
-                required
-                autoComplete="email"
-                style={inputStyle}
-              />
+              <input id="email" name="email" type="email" required autoComplete="email" style={inputStyle} />
             </div>
 
             {/* 4. Social Media */}
@@ -360,14 +383,7 @@ export default function SubmitPage() {
                 Social Media: Instagram and/or Resident Advisor
                 <span style={requiredMark}>*</span>
               </label>
-              <input
-                id="social_media"
-                name="social_media"
-                type="text"
-                required
-                autoComplete="off"
-                style={inputStyle}
-              />
+              <input id="social_media" name="social_media" type="text" required autoComplete="off" style={inputStyle} />
             </div>
 
             {/* 5. Concept */}
@@ -376,16 +392,10 @@ export default function SubmitPage() {
                 Describe your proposed concept of the mix
                 <span style={requiredMark}>*</span>
               </label>
-              <textarea
-                id="concept"
-                name="concept"
-                rows={4}
-                required
-                style={textareaStyle}
-              />
+              <textarea id="concept" name="concept" rows={4} required style={textareaStyle} />
             </div>
 
-            {/* 6. Upload Your Mix */}
+            {/* 6. Mix file */}
             <div style={fieldStyle}>
               <label style={labelStyle} htmlFor="mix_file">
                 Upload Your Mix<span style={requiredMark}>*</span>
@@ -396,6 +406,7 @@ export default function SubmitPage() {
                 required
                 accept="audio/*,video/*"
                 hint="Audio or video. Max 100 MB."
+                onFileChange={setMixFile}
               />
             </div>
 
@@ -411,6 +422,7 @@ export default function SubmitPage() {
                 required
                 accept=".pdf,image/*"
                 hint="For social media and mix promotion. PDF or image. Max 100 MB."
+                onFileChange={setPhotoFile}
               />
             </div>
 
@@ -420,13 +432,7 @@ export default function SubmitPage() {
                 Provide a short bio of yourself
                 <span style={requiredMark}>*</span>
               </label>
-              <textarea
-                id="bio"
-                name="bio"
-                rows={4}
-                required
-                style={textareaStyle}
-              />
+              <textarea id="bio" name="bio" rows={4} required style={textareaStyle} />
             </div>
 
             {/* 9. Anything else */}
@@ -434,12 +440,7 @@ export default function SubmitPage() {
               <label style={labelStyle} htmlFor="anything_else">
                 Anything else you&apos;d like to add?
               </label>
-              <textarea
-                id="anything_else"
-                name="anything_else"
-                rows={3}
-                style={textareaStyle}
-              />
+              <textarea id="anything_else" name="anything_else" rows={3} style={textareaStyle} />
             </div>
 
             {status === "error" && (
@@ -458,17 +459,17 @@ export default function SubmitPage() {
 
             <button
               type="submit"
-              disabled={status === "submitting"}
+              disabled={busy}
               aria-describedby={status === "error" ? "submit-error" : undefined}
               style={{
                 background: "none",
                 border: "1px solid var(--tr-border)",
-                color: status === "submitting" ? "var(--tr-text-dim)" : "var(--tr-text-muted)",
+                color: busy ? "var(--tr-text-dim)" : "var(--tr-text-muted)",
                 fontSize: "11px",
                 fontFamily: "inherit",
                 letterSpacing: "0.1em",
                 textTransform: "uppercase",
-                cursor: status === "submitting" ? "default" : "pointer",
+                cursor: busy ? "default" : "pointer",
                 padding: "8px 14px",
                 transition: "color 0.15s ease, border-color 0.15s ease",
                 display: "inline-flex",
@@ -476,17 +477,17 @@ export default function SubmitPage() {
                 gap: "10px",
               }}
               onMouseEnter={(e) => {
-                if (status === "submitting") return;
+                if (busy) return;
                 e.currentTarget.style.color = "var(--tr-text)";
                 e.currentTarget.style.borderColor = "var(--tr-accent)";
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = status === "submitting" ? "var(--tr-text-dim)" : "var(--tr-text-muted)";
+                e.currentTarget.style.color = busy ? "var(--tr-text-dim)" : "var(--tr-text-muted)";
                 e.currentTarget.style.borderColor = "var(--tr-border)";
               }}
             >
-              {status === "submitting" ? "Sending…" : "Send"}
-              {status !== "submitting" && <span aria-hidden style={{ fontSize: "10px" }}>→</span>}
+              {buttonLabel}
+              {!busy && <span aria-hidden style={{ fontSize: "10px" }}>→</span>}
             </button>
           </form>
         )}

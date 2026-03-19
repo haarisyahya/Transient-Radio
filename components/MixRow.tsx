@@ -48,7 +48,7 @@ export default function MixRow({ mix, isActive, isPlaying, onToggle }: MixRowPro
             lineHeight: "1",
             width: "4.5rem",
             paddingLeft: "2px",
-            color: isActive ? "var(--tr-accent-dim)" : "#242424",
+            color: isActive ? "var(--tr-accent)" : "#242424",
             transition: "color 0.2s ease",
           }}
         >

@@ -189,6 +189,74 @@ ACCENT COLOUR UPDATE & BUTTON BORDERS
 - Volume icon: stays var(--tr-text-muted) (unchanged)
 
 ────────────────────────────────────────────────────────────────────────────────
+LAYOUT & COLOUR FIXES
+────────────────────────────────────────────────────────────────────────────────
+- Mix list now spans full width: removed maxWidth: 860px from <main> in page.tsx
+  (bio/description retains its own maxWidth: 480px)
+- MixRow play/pause glyph (▶/■): colour changed from var(--tr-accent-dim)
+  to var(--tr-accent) (#615FCF) for full brightness when active
+
+────────────────────────────────────────────────────────────────────────────────
+SUPABASE SETUP
+────────────────────────────────────────────────────────────────────────────────
+- @supabase/supabase-js installed (v2)
+- lib/supabase.ts: public client using NEXT_PUBLIC_SUPABASE_ANON_KEY (RLS enforced)
+- lib/supabase-admin.ts: admin client using SUPABASE_SERVICE_ROLE_KEY (bypasses RLS)
+  → Only import supabaseAdmin in API routes, never in "use client" components
+
+────────────────────────────────────────────────────────────────────────────────
+R2 + SUPABASE INTEGRATION
+────────────────────────────────────────────────────────────────────────────────
+API routes (all use Edge runtime for Cloudflare Pages compatibility):
+
+  app/api/upload-url/route.ts
+    - Accepts: fileName, contentType, folder (POST)
+    - Generates a presigned R2 PUT URL (15 min expiry) via AWS SDK v3
+    - Returns: { uploadUrl, publicUrl }
+    - Files upload directly from browser to R2, bypassing the Next.js server
+
+  app/api/submit/route.ts
+    - Accepts: form metadata as JSON (POST)
+    - Saves submission record to Supabase submissions table via supabaseAdmin
+    - Validates all required fields before inserting
+
+  app/api/mixes/route.ts
+    - Returns mix list from Supabase mixes table ordered by index (GET)
+    - Used by page.tsx instead of static lib/mixes.ts
+
+app/submit/page.tsx — new three-step upload flow:
+    1. Upload mix file directly to R2 via presigned URL
+    2. Upload photo file directly to R2 via presigned URL
+       (both uploads run in parallel via Promise.all)
+    3. POST metadata + R2 public URLs to /api/submit
+  - Removed Formspree dependency entirely
+  - Status now includes "uploading" state with matching button label
+  - FileField now accepts onFileChange callback to pass File object to parent
+
+app/page.tsx — mixes now fetched from Supabase:
+  - Removed static `mixes` import from lib/mixes.ts
+  - Added mixes state (Mix[]) + mixesLoading state
+  - useEffect fetches /api/mixes on mount
+  - Shows "Loading…" while fetching
+
+NOTE: R2 bucket must have CORS configured to allow PUT from your domain.
+  Go to R2 bucket → Settings → CORS and add:
+  AllowedOrigins: ["*"] (or your domain once live)
+  AllowedMethods: ["PUT", "GET"]
+  AllowedHeaders: ["Content-Type"]
+
+────────────────────────────────────────────────────────────────────────────────
+CLOUDFLARE PAGES SETUP
+────────────────────────────────────────────────────────────────────────────────
+- @cloudflare/next-on-pages and wrangler installed
+- package.json: added pages:build and preview scripts
+- wrangler.toml created at project root:
+    name = "transient-radio"
+    compatibility_date = "2024-01-01"
+    compatibility_flags = ["nodejs_compat"]
+    pages_build_output_dir = ".vercel/output/static"
+
+────────────────────────────────────────────────────────────────────────────────
 PENDING / FUTURE
 ────────────────────────────────────────────────────────────────────────────────
 - Animation from Max -> replace <Logo> in top-left on all pages

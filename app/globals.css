@@ -26,8 +26,8 @@
   --tr-border: #1e1e1e;
   --tr-progress: #747474;
   --tr-progress-track: #222222;
-  --tr-accent: #c8905b;      /* Orange— used for active/playing state */
-  --tr-accent-dim: #c8905b; /* Ghost tint for large index numbers */
+  --tr-accent: #615FCF;      /* Orange— used for active/playing state */
+  --tr-accent-dim: #615FCF; /* Ghost tint for large index numbers */
 }
 
 * {
