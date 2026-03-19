@@ -11,7 +11,6 @@ export async function GET() {
         apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
         Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
       },
-      cache: "no-store",
     }
   );
 
