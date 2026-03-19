@@ -217,7 +217,7 @@ export default function Home() {
                 mix={mix}
                 isActive={currentMixId === mix.id}
                 isPlaying={currentMixId === mix.id && isPlaying}
-                onToggle={() => handleToggle(mix.id, mix.src)}
+                onToggle={() => handleToggle(mix.id, mix.file_url)}
               />
             ))
           ) : (
@@ -241,7 +241,7 @@ export default function Home() {
         volume={volume}
         currentTime={currentTime}
         duration={duration}
-        onToggle={() => currentMix && handleToggle(currentMix.id, currentMix.src)}
+        onToggle={() => currentMix && handleToggle(currentMix.id, currentMix.file_url)}
         onVolumeChange={handleVolumeChange}
         onSeek={handleSeek}
       />

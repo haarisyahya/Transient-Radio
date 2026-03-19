@@ -257,6 +257,15 @@ CLOUDFLARE PAGES SETUP
     pages_build_output_dir = ".vercel/output/static"
 
 ────────────────────────────────────────────────────────────────────────────────
+SCHEMA ALIGNMENT
+────────────────────────────────────────────────────────────────────────────────
+- Mix interface: renamed src → file_url to match Supabase mixes table schema
+- Removed static mixes array from lib/mixes.ts (data now comes from Supabase)
+- Updated page.tsx: mix.src → mix.file_url in both handleToggle call sites
+- Supabase/admin clients refactored to factory functions (getSupabase /
+  getSupabaseAdmin) to prevent build-time instantiation errors on Cloudflare
+
+────────────────────────────────────────────────────────────────────────────────
 PENDING / FUTURE
 ────────────────────────────────────────────────────────────────────────────────
 - Animation from Max -> replace <Logo> in top-left on all pages
