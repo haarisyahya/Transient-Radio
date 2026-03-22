@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useCallback, useState } from "react";
+import { useRef, useCallback, useState, useEffect } from "react";
 import type { Mix } from "@/lib/mixes";
 
 interface NowPlayingBarProps {
@@ -12,6 +12,8 @@ interface NowPlayingBarProps {
   onToggle: () => void;
   onVolumeChange: (volume: number) => void;
   onSeek: (time: number) => void;
+  onNext: () => void;
+  onPrev: () => void;
 }
 
 function formatTime(seconds: number): string {
@@ -34,20 +36,84 @@ export default function NowPlayingBar({
   onToggle,
   onVolumeChange,
   onSeek,
+  onNext,
+  onPrev,
 }: NowPlayingBarProps) {
   const seekBarRef = useRef<HTMLDivElement>(null);
+  const touchStartX = useRef(0);
+  const isDragging = useRef(false);
   const [isVolumeOpen, setIsVolumeOpen] = useState(false);
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const [dragProgress, setDragProgress] = useState<number | null>(null);
+  const displayProgress = dragProgress !== null ? dragProgress : (duration > 0 ? (currentTime / duration) * 100 : 0);
 
-  const handleSeekClick = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!duration || !seekBarRef.current) return;
-      const rect = seekBarRef.current.getBoundingClientRect();
-      const x = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
-      onSeek((x / rect.width) * duration);
-    },
-    [duration, onSeek]
-  );
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX;
+  }, []);
+
+  const handleTouchEnd = useCallback((e: React.TouchEvent) => {
+    const diff = touchStartX.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 50) {
+      if (diff > 0) onNext();
+      else onPrev();
+    }
+  }, [onNext, onPrev]);
+
+  const getPctFromClientX = useCallback((clientX: number): number | null => {
+    if (!seekBarRef.current || !duration) return null;
+    const rect = seekBarRef.current.getBoundingClientRect();
+    const x = Math.max(0, Math.min(clientX - rect.left, rect.width));
+    return x / rect.width;
+  }, [duration]);
+
+  const handleSeekMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    isDragging.current = true;
+    const pct = getPctFromClientX(e.clientX);
+    if (pct !== null) setDragProgress(pct * 100);
+  }, [getPctFromClientX]);
+
+  const handleSeekTouchStart = useCallback((e: React.TouchEvent<HTMLDivElement>) => {
+    isDragging.current = true;
+    const pct = getPctFromClientX(e.touches[0].clientX);
+    if (pct !== null) setDragProgress(pct * 100);
+  }, [getPctFromClientX]);
+
+  useEffect(() => {
+    const onMouseMove = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      const pct = getPctFromClientX(e.clientX);
+      if (pct !== null) setDragProgress(pct * 100);
+    };
+    const onMouseUp = (e: MouseEvent) => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      const pct = getPctFromClientX(e.clientX);
+      if (pct !== null) onSeek(pct * duration);
+      setDragProgress(null);
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      if (!isDragging.current) return;
+      const pct = getPctFromClientX(e.touches[0].clientX);
+      if (pct !== null) setDragProgress(pct * 100);
+    };
+    const onTouchEnd = (e: TouchEvent) => {
+      if (!isDragging.current) return;
+      isDragging.current = false;
+      const pct = getPctFromClientX(e.changedTouches[0].clientX);
+      if (pct !== null) onSeek(pct * duration);
+      setDragProgress(null);
+    };
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchend", onTouchEnd);
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", onMouseUp);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", onTouchEnd);
+    };
+  }, [duration, getPctFromClientX, onSeek]);
 
   return (
     <div
@@ -67,8 +133,10 @@ export default function NowPlayingBar({
     >
       {mix && (
         <>
-          {/* Info row */}
+          {/* Info row — swipe left for next, swipe right for prev */}
           <div
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
             style={{
               display: "flex",
               alignItems: "center",
@@ -196,12 +264,13 @@ export default function NowPlayingBar({
             </div>
           </div>
 
-          {/* Seek bar — full width */}
+          {/* Seek bar — drag to scrub */}
           <div
             ref={seekBarRef}
             className="seek-bar"
-            style={{ margin: "0 32px 14px" }}
-            onClick={handleSeekClick}
+            style={{ margin: "0 32px 14px", cursor: isDragging.current ? "grabbing" : "grab" }}
+            onMouseDown={handleSeekMouseDown}
+            onTouchStart={handleSeekTouchStart}
             role="slider"
             tabIndex={0}
             aria-label={`Seek — ${mix.artist} — ${mix.title}`}
@@ -219,7 +288,7 @@ export default function NowPlayingBar({
             }}
           >
             <div className="seek-bar__track" />
-            <div className="seek-bar__fill" style={{ width: `${progress}%` }} />
+            <div className="seek-bar__fill" style={{ width: `${displayProgress}%`, transition: dragProgress !== null ? "none" : undefined }} />
           </div>
         </>
       )}

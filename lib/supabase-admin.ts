@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Admin client — server-side / API routes ONLY.
-// Factory function — client created at request time, not module import time.
+// Admin client: server-side / API routes ONLY.
+// Factory function: client created at request time, not module import time.
 // This bypasses RLS. Never import this in a "use client" component.
 export function getSupabaseAdmin() {
   return createClient(

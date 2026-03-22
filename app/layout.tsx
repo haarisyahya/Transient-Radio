@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ClientShell from "@/components/ClientShell";
 
 export const metadata: Metadata = {
   title: "Transient Radio",
@@ -16,7 +17,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <a href="#main-content" className="skip-link">Skip to content</a>
-        {children}
+        <ClientShell>{children}</ClientShell>
       </body>
     </html>
   );

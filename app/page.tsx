@@ -1,101 +1,14 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import Logo from "@/components/Logo";
 import MixRow from "@/components/MixRow";
-import NowPlayingBar from "@/components/NowPlayingBar";
-import type { Mix } from "@/lib/mixes";
+import { useAudio } from "@/components/AudioProvider";
 
 export default function Home() {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [mixes, setMixes] = useState<Mix[]>([]);
-  const [mixesLoading, setMixesLoading] = useState(true);
-  const [currentMixId, setCurrentMixId] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  const { mixes, mixesLoading, currentMixId, isPlaying, handleToggle } = useAudio();
   const [search, setSearch] = useState("");
-  const [volume, setVolume] = useState(1);
-
-  useEffect(() => {
-    fetch("/api/mixes")
-      .then((res) => res.json())
-      .then((data) => setMixes(Array.isArray(data) ? data : []))
-      .catch(() => setMixes([]))
-      .finally(() => setMixesLoading(false));
-  }, []);
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-    const onDuration = () =>
-      setDuration(isNaN(audio.duration) ? 0 : audio.duration);
-    const onEnded = () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-    };
-    const onError = () => setIsPlaying(false);
-
-    audio.addEventListener("timeupdate", onTimeUpdate);
-    audio.addEventListener("durationchange", onDuration);
-    audio.addEventListener("loadedmetadata", onDuration);
-    audio.addEventListener("ended", onEnded);
-    audio.addEventListener("error", onError);
-
-    return () => {
-      audio.removeEventListener("timeupdate", onTimeUpdate);
-      audio.removeEventListener("durationchange", onDuration);
-      audio.removeEventListener("loadedmetadata", onDuration);
-      audio.removeEventListener("ended", onEnded);
-      audio.removeEventListener("error", onError);
-    };
-  }, []);
-
-  const handleToggle = useCallback(
-    (mixId: string, src: string) => {
-      const audio = audioRef.current;
-      if (!audio) return;
-
-      if (currentMixId === mixId) {
-        if (isPlaying) {
-          audio.pause();
-          setIsPlaying(false);
-        } else {
-          audio.play().catch(() => setIsPlaying(false));
-          setIsPlaying(true);
-        }
-      } else {
-        audio.pause();
-        audio.src = src;
-        audio.load();
-        setCurrentMixId(mixId);
-        setCurrentTime(0);
-        setDuration(0);
-        audio
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch(() => setIsPlaying(false));
-      }
-    },
-    [currentMixId, isPlaying]
-  );
-
-  const handleSeek = useCallback((time: number) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.currentTime = time;
-    setCurrentTime(time);
-  }, []);
-
-  const handleVolumeChange = useCallback((v: number) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    audio.volume = v;
-    setVolume(v);
-  }, []);
 
   const filteredMixes = mixes.filter((mix) => {
     const q = search.toLowerCase();
@@ -105,21 +18,15 @@ export default function Home() {
     );
   });
 
-  const currentMix = mixes.find((m) => m.id === currentMixId) ?? null;
-
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--tr-bg)" }}>
-      {/* Hidden audio element */}
-      <audio ref={audioRef} preload="metadata" />
-
       {/* TOP LEFT — animation goes here once received from Max.
           Recommended format: Lottie (.json / .lottie) or WebM video.
-          The Logo below is a temporary stand-in; replace it with the animation component. */}
+          Replace <Logo> with the animation component when ready. */}
       <div style={{ position: "fixed", top: "24px", left: "32px", zIndex: 10 }}>
-        <Logo href="/about" />
+        <Logo />
       </div>
 
-      {/* Main content */}
       <main
         id="main-content"
         style={{
@@ -221,30 +128,12 @@ export default function Home() {
               />
             ))
           ) : (
-            <p
-              style={{
-                color: "var(--tr-text-dim)",
-                fontSize: "12px",
-                padding: "24px 0",
-              }}
-            >
+            <p style={{ color: "var(--tr-text-dim)", fontSize: "12px", padding: "24px 0" }}>
               No mixes found.
             </p>
           )}
         </div>
       </main>
-
-      {/* Now playing bar — slides up from bottom when a mix is active */}
-      <NowPlayingBar
-        mix={currentMix}
-        isPlaying={isPlaying}
-        volume={volume}
-        currentTime={currentTime}
-        duration={duration}
-        onToggle={() => currentMix && handleToggle(currentMix.id, currentMix.file_url)}
-        onVolumeChange={handleVolumeChange}
-        onSeek={handleSeek}
-      />
     </div>
   );
 }

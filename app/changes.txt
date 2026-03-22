@@ -1,6 +1,6 @@
 TRANSIENT RADIO - CHANGES LOG
 ==============================
-Session: 2026-03-03
+Session: 2026-03-22
 
 ────────────────────────────────────────────────────────────────────────────────
 LOGO
@@ -276,6 +276,52 @@ EDGE RUNTIME FIX — SUPABASE REST API
 - lib/supabase.ts and lib/supabase-admin.ts kept for potential future use
   but no longer imported by API routes
 - wrangler.toml: nodejs_compat → nodejs_compat_v2 to provide async_hooks support
+
+────────────────────────────────────────────────────────────────────────────────
+PERSISTENT AUDIO + SWIPE NAVIGATION + MOBILE
+────────────────────────────────────────────────────────────────────────────────
+AudioProvider (components/AudioProvider.tsx — new):
+  - React context holding all audio state: mixes, currentMixId, isPlaying,
+    currentTime, duration, volume, handleToggle, handleSeek, handleVolumeChange
+  - Also exposes handleNext / handlePrev for track navigation
+  - Fetches mixes from /api/mixes on mount (single fetch, shared across all pages)
+
+ClientShell (components/ClientShell.tsx — new):
+  - Wraps the app with AudioProvider + NowPlayingBar at layout level
+  - NowPlayingConnected reads from context and passes props to NowPlayingBar
+  - Audio element lives here — never unmounts on page navigation
+
+layout.tsx:
+  - Wraps children in <ClientShell> so audio persists across /submit navigation
+
+page.tsx:
+  - Simplified — uses useAudio() hook instead of local audio state
+  - No more audioRef, no more useEffect for audio events
+
+NowPlayingBar:
+  - Added onNext / onPrev props
+  - Swipe left on the info row → next mix, swipe right → previous mix
+  - 50px threshold to distinguish swipe from tap
+
+globals.css:
+  - Seek bar hidden on mobile (max-width: 768px) — use hardware volume buttons
+
+────────────────────────────────────────────────────────────────────────────────
+SEEK BAR SCRUBBING + LOGO FIX
+────────────────────────────────────────────────────────────────────────────────
+Seek bar — drag to scrub (desktop + mobile):
+  - Click/touch and drag the bar to scrub through the track
+  - Visual fill updates in real time during drag
+  - Audio seeks on mouse/touch release (not during drag, avoids choppiness)
+  - Cursor changes to grab / grabbing during interaction
+  - Keyboard arrows still work (← → Home End)
+  - Seek bar re-enabled on mobile (was hidden, now needed for scrubbing)
+  - Touch drag is separate from swipe-to-navigate (seek bar handles its own touch)
+
+Logo:
+  - href prop made optional on Logo component
+  - Logo on home page no longer links to /about (no navigation on click)
+  - Logo on submit/about pages still links back to home (href="/")
 
 ────────────────────────────────────────────────────────────────────────────────
 PENDING / FUTURE
