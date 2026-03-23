@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
         artist_name,
         email,
         social_media,
-        concept,
+        mix_concept: concept,
         mix_url,
         photo_url,
         bio,
