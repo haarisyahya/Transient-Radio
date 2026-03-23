@@ -33,26 +33,38 @@ export async function POST(req: NextRequest) {
     const timestamp = Date.now();
     const sanitized = fileName.replace(/[^a-zA-Z0-9._-]/g, "-").toLowerCase();
     const key = `${folder}/${timestamp}-${sanitized}`;
+    const bucket = process.env.R2_BUCKET_NAME!;
 
-    // Initiate the multipart upload
-    const { UploadId } = await s3.send(
-      new CreateMultipartUploadCommand({
-        Bucket: process.env.R2_BUCKET_NAME!,
-        Key: key,
-        ContentType: contentType,
-      })
+    // Presign the CreateMultipartUpload request then call R2 via fetch.
+    // We cannot use s3.send() on Cloudflare Workers — it uses DOMParser to
+    // deserialise the XML response, which Workers does not provide.
+    const initiateUrl = await getSignedUrl(
+      s3,
+      new CreateMultipartUploadCommand({ Bucket: bucket, Key: key, ContentType: contentType }),
+      { expiresIn: 60 }
     );
+    const initiateRes = await fetch(initiateUrl, {
+      method: "POST",
+      headers: { "Content-Type": contentType },
+    });
+    if (!initiateRes.ok) {
+      const text = await initiateRes.text();
+      throw new Error(`R2 initiate failed (${initiateRes.status}): ${text}`);
+    }
+    const xml = await initiateRes.text();
+    const uploadId = xml.match(/<UploadId>(.+?)<\/UploadId>/)?.[1];
+    if (!uploadId) throw new Error("Could not parse UploadId from R2 response");
 
-    // Pre-sign a URL for every part (1 hour expiry to allow slow uploads)
+    // Pre-sign a URL for every part (getSignedUrl is local-only, no network call)
     const totalParts = Math.ceil(fileSize / CHUNK_SIZE);
     const partUrls = await Promise.all(
       Array.from({ length: totalParts }, (_, i) =>
         getSignedUrl(
           s3,
           new UploadPartCommand({
-            Bucket: process.env.R2_BUCKET_NAME!,
+            Bucket: bucket,
             Key: key,
-            UploadId,
+            UploadId: uploadId,
             PartNumber: i + 1,
           }),
           { expiresIn: 3600 }
@@ -62,13 +74,7 @@ export async function POST(req: NextRequest) {
 
     const publicUrl = `${process.env.NEXT_PUBLIC_R2_PUBLIC_URL}/${key}`;
 
-    return NextResponse.json({
-      uploadId: UploadId,
-      key,
-      partUrls,
-      publicUrl,
-      chunkSize: CHUNK_SIZE,
-    });
+    return NextResponse.json({ uploadId, key, partUrls, publicUrl, chunkSize: CHUNK_SIZE });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: message }, { status: 500 });

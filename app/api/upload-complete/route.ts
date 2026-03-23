@@ -5,6 +5,7 @@ import {
   CompleteMultipartUploadCommand,
   AbortMultipartUploadCommand,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { NextRequest, NextResponse } from "next/server";
 
 function makeS3() {
@@ -27,38 +28,50 @@ export async function POST(req: NextRequest) {
   }
 
   const s3 = makeS3();
+  const bucket = process.env.R2_BUCKET_NAME!;
+
+  // Build the XML body manually — avoids DOMParser (not available in Workers)
+  const xmlBody = [
+    "<CompleteMultipartUpload>",
+    ...parts.map(
+      (p: { partNumber: number; etag: string }) =>
+        `<Part><PartNumber>${p.partNumber}</PartNumber><ETag>${p.etag}</ETag></Part>`
+    ),
+    "</CompleteMultipartUpload>",
+  ].join("");
 
   try {
-    await s3.send(
-      new CompleteMultipartUploadCommand({
-        Bucket: process.env.R2_BUCKET_NAME!,
-        Key: key,
-        UploadId: uploadId,
-        MultipartUpload: {
-          Parts: parts.map(({ partNumber, etag }) => ({
-            PartNumber: partNumber,
-            ETag: etag,
-          })),
-        },
-      })
+    // Presign then execute via fetch — same reason as upload-start (no DOMParser)
+    const completeUrl = await getSignedUrl(
+      s3,
+      new CompleteMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }),
+      { expiresIn: 60 }
     );
+    const completeRes = await fetch(completeUrl, {
+      method: "POST",
+      body: xmlBody,
+      headers: { "Content-Type": "application/xml" },
+    });
+    if (!completeRes.ok) {
+      const text = await completeRes.text();
+      throw new Error(`R2 complete failed (${completeRes.status}): ${text}`);
+    }
 
     return NextResponse.json({ success: true });
-  } catch {
-    // Clean up the incomplete upload
-    await s3
-      .send(
-        new AbortMultipartUploadCommand({
-          Bucket: process.env.R2_BUCKET_NAME!,
-          Key: key,
-          UploadId: uploadId,
-        })
-      )
-      .catch(() => {});
+  } catch (err) {
+    // Best-effort abort to clean up the incomplete upload
+    try {
+      const abortUrl = await getSignedUrl(
+        s3,
+        new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }),
+        { expiresIn: 60 }
+      );
+      await fetch(abortUrl, { method: "DELETE" });
+    } catch {
+      // ignore abort errors
+    }
 
-    return NextResponse.json(
-      { error: "Failed to complete upload" },
-      { status: 500 }
-    );
+    const message = err instanceof Error ? err.message : String(err);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
