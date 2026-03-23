@@ -129,6 +129,13 @@ audio {
   outline: none;
 }
 
+/* Hide entire volume control on touch devices */
+@media (max-width: 768px) {
+  .volume-control {
+    display: none !important;
+  }
+}
+
 /* Volume slider */
 .volume-slider {
   -webkit-appearance: none;

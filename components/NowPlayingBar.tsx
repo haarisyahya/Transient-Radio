@@ -209,8 +209,8 @@ export default function NowPlayingBar({
                 : "loading…"}
             </span>
 
-            {/* Volume control */}
-            <div style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
+            {/* Volume control — hidden on mobile via CSS */}
+            <div className="volume-control" style={{ display: "flex", alignItems: "center", gap: "10px", flexShrink: 0 }}>
               {isVolumeOpen && (
                 <input
                   type="range"

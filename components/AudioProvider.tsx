@@ -121,6 +121,41 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     if (prev) handleToggle(prev.id, prev.file_url);
   }, [mixes, currentMixId, handleToggle]);
 
+  // Media Session API — makes OS-level play/pause/next/prev controls work
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    const mix = mixes.find((m) => m.id === currentMixId);
+    if (!mix) return;
+    navigator.mediaSession.metadata = new MediaMetadata({
+      title: mix.title,
+      artist: mix.artist,
+    });
+  }, [currentMixId, mixes]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.playbackState = isPlaying ? "playing" : "paused";
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (!("mediaSession" in navigator)) return;
+    navigator.mediaSession.setActionHandler("play", () => {
+      audioRef.current?.play().then(() => setIsPlaying(true)).catch(() => {});
+    });
+    navigator.mediaSession.setActionHandler("pause", () => {
+      audioRef.current?.pause();
+      setIsPlaying(false);
+    });
+    navigator.mediaSession.setActionHandler("nexttrack", handleNext);
+    navigator.mediaSession.setActionHandler("previoustrack", handlePrev);
+    return () => {
+      navigator.mediaSession.setActionHandler("play", null);
+      navigator.mediaSession.setActionHandler("pause", null);
+      navigator.mediaSession.setActionHandler("nexttrack", null);
+      navigator.mediaSession.setActionHandler("previoustrack", null);
+    };
+  }, [handleNext, handlePrev]);
+
   return (
     <AudioCtx.Provider value={{
       mixes, mixesLoading, currentMixId, isPlaying,

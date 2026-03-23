@@ -55,8 +55,7 @@ export async function POST(req: NextRequest) {
 
   if (!res.ok) {
     const text = await res.text();
-    console.error("Supabase error:", text);
-    return NextResponse.json({ error: "Failed to save submission" }, { status: 500 });
+    return NextResponse.json({ error: text || "Failed to save submission" }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

@@ -1,25 +1,37 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Link from "next/link";
+import lottie from "lottie-web";
 
 interface LogoProps {
   href?: string;
 }
 
 export default function Logo({ href }: LogoProps) {
-  const video = (
-    <video
-      src="/TransientRadio-LogoAnimation-V1.0.webm"
-      autoPlay
-      loop
-      muted
-      playsInline
-      style={{ height: "110px", width: "auto", display: "block" }}
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const anim = lottie.loadAnimation({
+      container: containerRef.current,
+      renderer: "svg",
+      loop: true,
+      autoplay: true,
+      path: "/TransientRadio-LogoAnimation-V1.0.json",
+    });
+    return () => anim.destroy();
+  }, []);
+
+  const animation = (
+    <div
+      ref={containerRef}
       aria-hidden
+      style={{ height: "110px" }}
     />
   );
 
-  if (!href) return <div aria-label="Transient Radio">{video}</div>;
+  if (!href) return <div aria-label="Transient Radio">{animation}</div>;
 
   return (
     <Link
@@ -27,7 +39,7 @@ export default function Logo({ href }: LogoProps) {
       className="block transition-opacity duration-200 hover:opacity-60"
       aria-label="Transient Radio"
     >
-      {video}
+      {animation}
     </Link>
   );
 }
