@@ -204,7 +204,10 @@ async function uploadToR2(
       fileSize: file.size,
     }),
   });
-  if (!startRes.ok) throw new Error("Failed to start upload");
+  if (!startRes.ok) {
+    const json = await startRes.json().catch(() => ({}));
+    throw new Error(json?.error ?? "Failed to start upload");
+  }
   const { uploadId, key, partUrls, publicUrl, chunkSize } = await startRes.json();
 
   const parts: { partNumber: number; etag: string }[] = [];
