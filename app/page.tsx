@@ -20,17 +20,14 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--tr-bg)" }}>
-      {/* TOP LEFT — animation goes here once received from Max.
-          Recommended format: Lottie (.json / .lottie) or WebM video.
-          Replace <Logo> with the animation component when ready. */}
-      <div style={{ position: "fixed", top: "24px", left: "32px", zIndex: 10 }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--tr-bg)", padding: "24px 32px" }}>
         <Logo />
-      </div>
+      </header>
 
       <main
         id="main-content"
         style={{
-          padding: "120px 32px 80px",
+          padding: "40px 32px 80px",
           paddingBottom: currentMixId ? "160px" : "80px",
           transition: "padding-bottom 0.3s ease",
         }}

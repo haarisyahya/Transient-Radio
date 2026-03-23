@@ -166,29 +166,72 @@ function FileField({ id, name, required, accept, hint, onFileChange }: FileField
   );
 }
 
-async function uploadToR2(file: File, folder: string): Promise<string> {
-  // Step 1: get presigned URL
-  const res = await fetch("/api/upload-url", {
+const MULTIPART_THRESHOLD = 50 * 1024 * 1024; // 50 MB — use multipart above this
+
+async function uploadToR2(
+  file: File,
+  folder: string,
+  onProgress?: (pct: number) => void
+): Promise<string> {
+  // Small files — single presigned PUT
+  if (file.size <= MULTIPART_THRESHOLD) {
+    const res = await fetch("/api/upload-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ fileName: file.name, contentType: file.type, folder }),
+    });
+    if (!res.ok) throw new Error("Failed to get upload URL");
+    const { uploadUrl, publicUrl } = await res.json();
+
+    const uploadRes = await fetch(uploadUrl, {
+      method: "PUT",
+      body: file,
+      headers: { "Content-Type": file.type },
+    });
+    if (!uploadRes.ok) throw new Error("Failed to upload file");
+    onProgress?.(100);
+    return publicUrl;
+  }
+
+  // Large files — multipart upload
+  const startRes = await fetch("/api/upload-start", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       fileName: file.name,
       contentType: file.type,
       folder,
+      fileSize: file.size,
     }),
   });
+  if (!startRes.ok) throw new Error("Failed to start upload");
+  const { uploadId, key, partUrls, publicUrl, chunkSize } = await startRes.json();
 
-  if (!res.ok) throw new Error("Failed to get upload URL");
-  const { uploadUrl, publicUrl } = await res.json();
+  const parts: { partNumber: number; etag: string }[] = [];
+  let uploaded = 0;
 
-  // Step 2: upload directly to R2
-  const uploadRes = await fetch(uploadUrl, {
-    method: "PUT",
-    body: file,
-    headers: { "Content-Type": file.type },
+  for (let i = 0; i < partUrls.length; i++) {
+    const start = i * chunkSize;
+    const chunk = file.slice(start, Math.min(start + chunkSize, file.size));
+
+    const partRes = await fetch(partUrls[i], { method: "PUT", body: chunk });
+    if (!partRes.ok) throw new Error(`Failed to upload part ${i + 1}`);
+
+    const etag = partRes.headers.get("ETag") ?? partRes.headers.get("etag") ?? "";
+    parts.push({ partNumber: i + 1, etag });
+
+    uploaded += chunk.size;
+    onProgress?.(Math.round((uploaded / file.size) * 90)); // reserve last 10% for complete step
+  }
+
+  const completeRes = await fetch("/api/upload-complete", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key, uploadId, parts }),
   });
+  if (!completeRes.ok) throw new Error("Failed to complete upload");
 
-  if (!uploadRes.ok) throw new Error("Failed to upload file");
+  onProgress?.(100);
   return publicUrl;
 }
 
@@ -197,6 +240,7 @@ export default function SubmitPage() {
   const [errorMessage, setErrorMessage] = useState("");
   const [mixFile, setMixFile] = useState<File | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [uploadPct, setUploadPct] = useState(0);
 
   const busy = status === "uploading" || status === "submitting";
 
@@ -211,15 +255,20 @@ export default function SubmitPage() {
 
     setStatus("uploading");
     setErrorMessage("");
+    setUploadPct(0);
 
     const form = e.currentTarget;
     const data = new FormData(form);
 
     try {
-      // Upload both files to R2
+      // Upload files to R2 — mix uses multipart if large, photo uses single PUT
+      let mixPct = 0;
+      let photoPct = 0;
+      const updateProgress = () => setUploadPct(Math.round((mixPct + photoPct) / 2));
+
       const [mixUrl, photoUrl] = await Promise.all([
-        uploadToR2(mixFile, "submissions/mixes"),
-        uploadToR2(photoFile, "submissions/photos"),
+        uploadToR2(mixFile, "submissions/mixes", (p) => { mixPct = p; updateProgress(); }),
+        uploadToR2(photoFile, "submissions/photos", (p) => { photoPct = p; updateProgress(); }),
       ]);
 
       // Save metadata to Supabase
@@ -256,20 +305,19 @@ export default function SubmitPage() {
 
   const buttonLabel =
     status === "uploading"
-      ? "Uploading files…"
+      ? `Uploading… ${uploadPct}%`
       : status === "submitting"
       ? "Saving…"
       : "Send";
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--tr-bg)" }}>
-      {/* TOP LEFT — replace Logo with animation component once received from Max */}
-      <div style={{ position: "fixed", top: "24px", left: "32px", zIndex: 10 }}>
+      <header style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--tr-bg)", padding: "24px 32px" }}>
         <Logo href="/" />
-      </div>
+      </header>
 
       {/* Main content */}
-      <main id="main-content" style={{ padding: "120px 32px 120px", maxWidth: "560px" }}>
+      <main id="main-content" style={{ padding: "16px 32px 120px", maxWidth: "560px" }}>
         <h1
           style={{
             color: "var(--tr-text-muted)",
@@ -405,7 +453,7 @@ export default function SubmitPage() {
                 name="mix_file"
                 required
                 accept="audio/*,video/*"
-                hint="Audio or video. Max 100 MB."
+                hint="Audio or video. Large files supported."
                 onFileChange={setMixFile}
               />
             </div>
@@ -421,7 +469,7 @@ export default function SubmitPage() {
                 name="photo_file"
                 required
                 accept=".pdf,image/*"
-                hint="For social media and mix promotion. PDF or image. Max 100 MB."
+                hint="For social media and mix promotion. PDF or image."
                 onFileChange={setPhotoFile}
               />
             </div>

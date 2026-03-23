@@ -323,11 +323,49 @@ Logo:
   - Logo on home page no longer links to /about (no navigation on click)
   - Logo on submit/about pages still links back to home (href="/")
 
+03/23/2026
+────────────────────────────────────────────────────────────────────────────────
+MULTIPART UPLOAD + MOBILE SCRUB FIX
+────────────────────────────────────────────────────────────────────────────────
+Seek bar page-drag fix:
+  - touchmove listener changed from passive:true to passive:false
+  - e.preventDefault() called when isDragging to stop page scrolling during scrub
+
+Multipart upload for large mix files:
+  - Files ≤ 50MB: existing single presigned PUT (unchanged)
+  - Files > 50MB: chunked multipart upload via two new API routes:
+      app/api/upload-start/route.ts
+        Initiates S3 multipart upload, returns uploadId + per-part presigned URLs
+        Chunk size: 10MB, URL expiry: 1 hour
+      app/api/upload-complete/route.ts
+        Assembles all parts using ETags, aborts upload automatically on failure
+  - Submit form shows live upload percentage: "Uploading… 42%"
+  - Mix and photo uploads run in parallel; progress averaged for display
+  - Mix file hint updated: "Large files supported" (no size cap)
+  - NOTE: R2 CORS config must include ETag in ExposeHeaders for multipart to work:
+      Go to R2 bucket → Settings → CORS
+      Add ExposeHeaders: ["ETag"] to your existing rule
+
+────────────────────────────────────────────────────────────────────────────────
+LOGO ANIMATION + LAYOUT FIX (Session: 2026-03-23)
+────────────────────────────────────────────────────────────────────────────────
+Logo animation (components/Logo.tsx):
+  - Replaced static TR-Icon-DarkGrey.png with WebM animation
+    (TransientRadio-LogoAnimation-V1.0.webm — autoPlay, loop, muted, playsInline)
+  - No external library needed; <video> element works natively in all browsers
+  - Removed useState/imageError fallback (no longer needed)
+
+Logo layout fix (app/page.tsx, app/submit/page.tsx):
+  - Both pages had logo in position: fixed div — caused logo to overlap form fields
+    on the submit page as the user scrolled down
+  - Changed to <header> with position: sticky + top: 0 on both pages
+  - Header takes up real space in the layout so content never scrolls under it
+  - Adjusted main content padding-top (submit: 120px → 16px, home: 120px → 40px)
+    since the sticky header now provides the visual offset from the top
+
 ────────────────────────────────────────────────────────────────────────────────
 PENDING / FUTURE
 ────────────────────────────────────────────────────────────────────────────────
-- Animation from Max -> replace <Logo> in top-left on all pages
-  (home, about, submit — all marked with comments)
 - Supabase migration for mixes archive + form submissions
   (will replace static lib/mixes.ts and Formspree)
 - Formspree Gold plan upgrade for file upload support (mix + photo fields), maybe?

@@ -93,6 +93,7 @@ export default function NowPlayingBar({
     };
     const onTouchMove = (e: TouchEvent) => {
       if (!isDragging.current) return;
+      e.preventDefault(); // stop page scrolling while scrubbing
       const pct = getPctFromClientX(e.touches[0].clientX);
       if (pct !== null) setDragProgress(pct * 100);
     };
@@ -105,7 +106,7 @@ export default function NowPlayingBar({
     };
     window.addEventListener("mousemove", onMouseMove);
     window.addEventListener("mouseup", onMouseUp);
-    window.addEventListener("touchmove", onTouchMove, { passive: true });
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
     window.addEventListener("touchend", onTouchEnd);
     return () => {
       window.removeEventListener("mousemove", onMouseMove);
