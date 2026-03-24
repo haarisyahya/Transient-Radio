@@ -355,8 +355,7 @@ export default function SubmitPage() {
           </p>
           <p style={{ marginBottom: "6px" }}>All genres are welcome.</p>
           <p style={{ marginBottom: "6px" }}>
-            We&apos;ll feature 4 mixes each month, dropping one every week. All
-            selected mixes will go up on our website.
+            
           </p>
           <p>
             If your mix is selected, we&apos;ll reach out to you.
