@@ -34,8 +34,13 @@ export function useAudio() {
   return ctx;
 }
 
+const FADE_MS = 1000;
+const FADE_STEP_MS = 16; // ~60fps
+
 export function AudioProvider({ children }: { children: ReactNode }) {
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const fadeRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const volumeRef = useRef(1); // tracks desired volume independently of fade
   const [mixes, setMixes] = useState<Mix[]>([]);
   const [mixesLoading, setMixesLoading] = useState(true);
   const [currentMixId, setCurrentMixId] = useState<string | null>(null);
@@ -43,6 +48,35 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
+
+  const clearFade = useCallback(() => {
+    if (fadeRef.current !== null) { clearInterval(fadeRef.current); fadeRef.current = null; }
+  }, []);
+
+  const fadeIn = useCallback((audio: HTMLAudioElement) => {
+    clearFade();
+    audio.volume = 0;
+    const target = volumeRef.current;
+    const steps = FADE_MS / FADE_STEP_MS;
+    let step = 0;
+    fadeRef.current = setInterval(() => {
+      step++;
+      audio.volume = Math.min((target / steps) * step, target);
+      if (step >= steps) clearFade();
+    }, FADE_STEP_MS);
+  }, [clearFade]);
+
+  const fadeOut = useCallback((audio: HTMLAudioElement, onDone: () => void) => {
+    clearFade();
+    const start = audio.volume;
+    const steps = FADE_MS / FADE_STEP_MS;
+    let step = 0;
+    fadeRef.current = setInterval(() => {
+      step++;
+      audio.volume = Math.max(start - (start / steps) * step, 0);
+      if (step >= steps) { clearFade(); onDone(); }
+    }, FADE_STEP_MS);
+  }, [clearFade]);
 
   // Fetch mixes once on mount
   useEffect(() => {
@@ -80,19 +114,35 @@ export function AudioProvider({ children }: { children: ReactNode }) {
       const audio = audioRef.current;
       if (!audio) return;
       if (currentMixId === mixId) {
-        if (isPlaying) { audio.pause(); setIsPlaying(false); }
-        else { audio.play().catch(() => setIsPlaying(false)); setIsPlaying(true); }
+        if (isPlaying) {
+          // Fade out then pause
+          setIsPlaying(false);
+          fadeOut(audio, () => {
+            audio.pause();
+            audio.volume = volumeRef.current;
+          });
+        } else {
+          // Fade in from silence
+          audio.play().catch(() => setIsPlaying(false));
+          setIsPlaying(true);
+          fadeIn(audio);
+        }
       } else {
+        // Switch track: cut immediately, then fade in new track
+        clearFade();
         audio.pause();
+        audio.volume = 0;
         audio.src = src;
         audio.load();
         setCurrentMixId(mixId);
         setCurrentTime(0);
         setDuration(0);
-        audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        audio.play()
+          .then(() => { setIsPlaying(true); fadeIn(audio); })
+          .catch(() => setIsPlaying(false));
       }
     },
-    [currentMixId, isPlaying]
+    [currentMixId, isPlaying, fadeIn, fadeOut, clearFade]
   );
 
   const handleSeek = useCallback((time: number) => {
@@ -105,6 +155,7 @@ export function AudioProvider({ children }: { children: ReactNode }) {
   const handleVolumeChange = useCallback((v: number) => {
     const audio = audioRef.current;
     if (!audio) return;
+    volumeRef.current = v;
     audio.volume = v;
     setVolume(v);
   }, []);
