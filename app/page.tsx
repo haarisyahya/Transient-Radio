@@ -109,7 +109,7 @@ export default function Home() {
         </div>
 
         {/* Mixes list */}
-        <div>
+        <div style={{ marginBottom: "64px" }}>
           {mixesLoading ? (
             <p style={{ color: "var(--tr-text-dim)", fontSize: "12px", padding: "24px 0" }}>
               Loading…
@@ -151,7 +151,7 @@ export default function Home() {
           src="/TR-Icon-Transparent.png"
           alt="Transient Radio"
           style={{
-            height: "36px",
+            height: "76px",
             width: "auto",
             filter: "brightness(0) invert(1)",
             opacity: 0.25,
