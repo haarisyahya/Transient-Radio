@@ -126,9 +126,13 @@ export function AudioProvider({ children }: { children: ReactNode }) {
     if (!("mediaSession" in navigator)) return;
     const mix = mixes.find((m) => m.id === currentMixId);
     if (!mix) return;
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
     navigator.mediaSession.metadata = new MediaMetadata({
       title: mix.title,
       artist: mix.artist,
+      artwork: [
+        { src: `${origin}/TR-Icon-Transparent.png`, sizes: "512x512", type: "image/png" },
+      ],
     });
   }, [currentMixId, mixes]);
 
