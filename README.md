@@ -1,2 +1,2 @@
-Transient Radio is a website that lets users view mixes in Toronto and listen to them with ease. Developed using NextJS, Tailwind, and Supabase. Deployed using Cloudflare.
-
+A borderless music discovery hub built for the modern listener. Stream local artist mixes or submit your own.
+Tech: TypeScript | Tailwind | Supabase | Cloudflare R2
