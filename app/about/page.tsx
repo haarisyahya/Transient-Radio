@@ -20,7 +20,7 @@ export default function About() {
               marginBottom: "24px",
             }}
           >
-            Transient Radio is a nomadic, internet-station archive exploring music beyond genre and geography. Broadcasting from Toronto to the world.
+            An internet-based station exploring music beyond genre and geography. Broadcasting weekly from Toronto to the world.
           </p>
 
           <p

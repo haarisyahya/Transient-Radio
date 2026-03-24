@@ -20,7 +20,7 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--tr-bg)" }}>
-      <header style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--tr-bg)", padding: "24px 32px" }}>
+      <header className="logo-header" style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--tr-bg)", padding: "24px 32px" }}>
         <Logo />
       </header>
 
@@ -45,8 +45,7 @@ export default function Home() {
             marginTop: "24px",
           }}
         >
-          Transient Radio is a nomadic, internet-based station exploring music
-          beyond genre and geography. Broadcasting from Toronto to the world.
+          An internet-based station exploring music beyond genre and geography. Broadcasting weekly from Toronto to the world.
         </p>
 
         {/* Submit Your Mix link */}
@@ -81,7 +80,7 @@ export default function Home() {
         </div>
 
         {/* Search */}
-        <div style={{ marginBottom: "0" }}>
+        <div style={{ marginBottom: "16px" }}>
           <label htmlFor="mix-search" className="sr-only">Search mixes</label>
           <input
             id="mix-search"
@@ -99,6 +98,7 @@ export default function Home() {
               fontFamily: "inherit",
               padding: "10px 0",
               marginBottom: "0",
+              outline: "none",
             }}
           />
           <div aria-live="polite" className="sr-only">
@@ -131,6 +131,43 @@ export default function Home() {
           )}
         </div>
       </main>
+
+      {/* Footer */}
+      <footer
+        style={{
+          padding: "24px 32px",
+          paddingBottom: currentMixId ? "160px" : "24px",
+          transition: "padding-bottom 0.3s ease",
+          borderTop: "1px solid var(--tr-border)",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          textAlign: "center",
+          gap: "8px",
+        }}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src="/TR-Icon-Transparent.png"
+          alt="Transient Radio"
+          style={{
+            height: "36px",
+            width: "auto",
+            filter: "brightness(0) invert(1)",
+            opacity: 0.25,
+          }}
+        />
+        <p
+          style={{
+            color: "var(--tr-text-dim)",
+            fontSize: "11px",
+            letterSpacing: "0.06em",
+            margin: 0,
+          }}
+        >
+          Thank you for listening, share with a friend, spread the word
+        </p>
+      </footer>
     </div>
   );
 }

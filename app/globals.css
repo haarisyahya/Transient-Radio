@@ -129,6 +129,30 @@ audio {
   outline: none;
 }
 
+/* Lottie logo animation container */
+.logo-animation {
+  height: 116px;
+  width: 250px;
+}
+
+/* Logo header — left-aligned on desktop, centered on mobile */
+.logo-header {
+  padding-top: 40px !important;
+}
+
+@media (max-width: 768px) {
+  .logo-header {
+    padding-top: 24px !important;
+    display: flex;
+    justify-content: center;
+  }
+
+  .logo-animation {
+    height: 48px;
+    width: 120px;
+  }
+}
+
 /* Hide entire volume control on touch devices */
 @media (max-width: 768px) {
   .volume-control {

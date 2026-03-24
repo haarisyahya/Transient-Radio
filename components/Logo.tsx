@@ -27,7 +27,7 @@ export default function Logo({ href }: LogoProps) {
     <div
       ref={containerRef}
       aria-hidden
-      style={{ height: "110px" }}
+      className="logo-animation"
     />
   );
 

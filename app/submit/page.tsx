@@ -315,7 +315,7 @@ export default function SubmitPage() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--tr-bg)" }}>
-      <header style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--tr-bg)", padding: "24px 32px" }}>
+      <header className="logo-header" style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--tr-bg)", padding: "24px 32px" }}>
         <Logo href="/" />
       </header>
 
@@ -356,11 +356,10 @@ export default function SubmitPage() {
           <p style={{ marginBottom: "6px" }}>All genres are welcome.</p>
           <p style={{ marginBottom: "6px" }}>
             We&apos;ll feature 4 mixes each month, dropping one every week. All
-            selected mixes will go up on our new site.
+            selected mixes will go up on our website.
           </p>
           <p>
-            If your mix is selected, we&apos;ll reach out to let you know when
-            it&apos;s scheduled and share upload details.
+            If your mix is selected, we&apos;ll reach out to you.
           </p>
         </div>
 

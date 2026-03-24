@@ -164,7 +164,16 @@ export default function NowPlayingBar({
               onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.7")}
               onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
             >
-              {isPlaying ? "■" : "▶"}
+              {isPlaying ? (
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden>
+                  <rect x="5" y="3" width="4" height="18" rx="1" />
+                  <rect x="15" y="3" width="4" height="18" rx="1" />
+                </svg>
+              ) : (
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor" aria-hidden>
+                  <polygon points="5,3 20,12 5,21" />
+                </svg>
+              )}
             </button>
 
             {/* Stacked artist / title */}
