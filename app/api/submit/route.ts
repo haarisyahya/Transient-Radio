@@ -10,6 +10,7 @@ export async function POST(req: NextRequest) {
     email,
     social_media,
     concept,
+    mix_title,
     mix_url,
     photo_url,
     bio,
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
     !email ||
     !social_media ||
     !concept ||
+    !mix_title ||
     !mix_url ||
     !photo_url ||
     !bio
@@ -45,6 +47,7 @@ export async function POST(req: NextRequest) {
         email,
         social_media,
         mix_concept: concept,
+        mix_title,
         mix_url,
         photo_url,
         bio,

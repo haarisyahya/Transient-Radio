@@ -20,7 +20,7 @@ export default function Home() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--tr-bg)" }}>
-      <header className="logo-header" style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--tr-bg)", padding: "24px 32px" }}>
+      <header className="logo-header" style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--tr-bg)", padding: "24px 32px", display: "flex", justifyContent: "center" }}>
         <Logo />
       </header>
 

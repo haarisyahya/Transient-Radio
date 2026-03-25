@@ -290,6 +290,7 @@ export default function SubmitPage() {
           anything_else: data.get("anything_else"),
           mix_url: mixUrl,
           photo_url: photoUrl,
+          mix_title: data.get("mix_title"),
         }),
       });
 
@@ -315,7 +316,7 @@ export default function SubmitPage() {
 
   return (
     <div style={{ minHeight: "100vh", backgroundColor: "var(--tr-bg)" }}>
-      <header className="logo-header" style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--tr-bg)", padding: "24px 32px" }}>
+      <header className="logo-header" style={{ position: "sticky", top: 0, zIndex: 10, backgroundColor: "var(--tr-bg)", padding: "24px 32px", display: "flex", justifyContent: "center" }}>
         <Logo href="/" />
       </header>
 
@@ -435,16 +436,25 @@ export default function SubmitPage() {
               <input id="social_media" name="social_media" type="text" required autoComplete="off" style={inputStyle} />
             </div>
 
-            {/* 5. Concept */}
+             {/* 5. Mix Title */}
+            <div style={fieldStyle}>
+              <label style={labelStyle} htmlFor="mix_title">
+                Mix Title
+                <span style={requiredMark}>*</span>
+              </label>
+              <textarea id="mix_title" name="mix_title" rows={1} required style={textareaStyle} />
+            </div>
+
+            {/* 6. Concept */}
             <div style={fieldStyle}>
               <label style={labelStyle} htmlFor="concept">
                 Describe your proposed concept of the mix
                 <span style={requiredMark}>*</span>
               </label>
               <textarea id="concept" name="concept" rows={4} required style={textareaStyle} />
-            </div>
+            </div>  
 
-            {/* 6. Mix file */}
+            {/* 7. Mix file */}
             <div style={fieldStyle}>
               <label style={labelStyle} htmlFor="mix_file">
                 Upload Your Mix<span style={requiredMark}>*</span>
@@ -459,7 +469,7 @@ export default function SubmitPage() {
               />
             </div>
 
-            {/* 7. Photo */}
+            {/* 8. Photo */}
             <div style={fieldStyle}>
               <label style={labelStyle} htmlFor="photo_file">
                 Upload a photo to accompany your set
@@ -475,7 +485,7 @@ export default function SubmitPage() {
               />
             </div>
 
-            {/* 8. Bio */}
+            {/* 9. Bio */}
             <div style={fieldStyle}>
               <label style={labelStyle} htmlFor="bio">
                 Provide a short bio of yourself
@@ -484,7 +494,7 @@ export default function SubmitPage() {
               <textarea id="bio" name="bio" rows={4} required style={textareaStyle} />
             </div>
 
-            {/* 9. Anything else */}
+            {/* 10. Anything else */}
             <div style={fieldStyle}>
               <label style={labelStyle} htmlFor="anything_else">
                 Anything else you&apos;d like to add?

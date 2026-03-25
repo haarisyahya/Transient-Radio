@@ -135,9 +135,10 @@ audio {
   width: 250px;
 }
 
-/* Logo header — left-aligned on desktop, centered on mobile */
+/* Logo header — center-aligned on desktop and on mobile */
 .logo-header {
   padding-top: 40px !important;
+  justify-content: center;
 }
 
 @media (max-width: 768px) {
