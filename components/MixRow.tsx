@@ -129,11 +129,10 @@ export default function MixRow({ mix, isActive, isPlaying, onToggle }: MixRowPro
       {isExpanded && mix.description && (
         <div
           style={{
-            padding: "0 0 20px calc(4.5rem + 1rem)",
+            padding: "0 0 20px 0",
             color: "var(--tr-text-muted)",
             fontSize: "12px",
             lineHeight: "1.8",
-            maxWidth: "560px",
           }}
         >
           {mix.description}
